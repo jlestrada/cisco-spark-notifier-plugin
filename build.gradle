@@ -29,7 +29,7 @@ repositories {
 	maven {	url "https://repo.jenkins-ci.org/public/" }
 }
 
-group = "org.jenkins-ci.tools"
+group = "org.jenkins-ci.plugins"
 version = "1.0.0"
 description = "Notify Cisco Spark Rooms from Jenkins Build Steps or Post Build Step using 'Secret text' Credential containing Bot or User Token"
 
