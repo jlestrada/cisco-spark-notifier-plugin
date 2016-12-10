@@ -1,13 +1,8 @@
 package com.jenkins.plugins.sparknotify;
 
-import static com.cloudbees.plugins.credentials.CredentialsMatchers.firstOrNull;
-import static com.cloudbees.plugins.credentials.CredentialsMatchers.withId;
-import static com.cloudbees.plugins.credentials.CredentialsProvider.lookupCredentials;
-
 import java.io.IOException;
 import java.net.SocketException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import javax.ws.rs.core.Response.Status;
@@ -23,7 +18,6 @@ import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 
 import hudson.EnvVars;
@@ -36,6 +30,7 @@ import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
 import hudson.model.Job;
+import hudson.model.Run;
 import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
@@ -44,7 +39,6 @@ import hudson.tasks.Recorder;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.ListBoxModel.Option;
-import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 
 public class SparkNotifyPostBuilder extends Recorder {
@@ -211,34 +205,24 @@ public class SparkNotifyPostBuilder extends Recorder {
 
 		SparkMessageType sparkMessageType = SparkMessageType.valueOf(messageType.toUpperCase());
 
-		SparkNotifier notifier = new SparkNotifier(getCredentials(credentialsId), envVars);
-
-		boolean isProblemSendingMessage = false;
+		SparkNotifier notifier = new SparkNotifier(getCredentials(credentialsId, build), envVars);
 
 		for (int k = 0; k < roomList.size(); k++) {
 			listener.getLogger().println("Sending message to Spark Room: " + roomList.get(k).getRId());
 			try {
 				int responseCode = notifier.sendMessage(roomList.get(k).getRId(), message, sparkMessageType);
 				if (responseCode != Status.OK.getStatusCode()) {
-					listener.getLogger().println("Could not post message, response code: " + responseCode);
-					isProblemSendingMessage = true;
+					listener.getLogger().println("Could not send message, response code: " + responseCode);
+				} else {
+					listener.getLogger().println("Message sent");
 				}
 			} catch (SocketException e) {
-				listener.getLogger().println("Could not post message because Spark API server did not provide a response; This is likely intermittent");
-				isProblemSendingMessage = true;
+				listener.getLogger().println("Could not send message because Spark API server did not provide a response; This is likely intermittent");
 			} catch (SparkNotifyException e) {
-				listener.getLogger().println("Could not post message because token could not be generated, did you select the right credential?");
-				isProblemSendingMessage = true;
+				listener.getLogger().println("Could not send message because token could not be found.");
 			} catch (RuntimeException e) {
-				listener.getLogger().println("Could not post message because of an unknown issue, please contact the Administrators");
-				isProblemSendingMessage = true;
+				listener.getLogger().println("Could not send message because of an unknown issue. Please contact the Administrators");
 			}
-		}
-
-		if (isProblemSendingMessage) {
-			listener.getLogger().println("Issues occured posting messages");
-		} else {
-			listener.getLogger().println("Spark messages posted successfully");
 		}
 
 		return true;
@@ -323,13 +307,7 @@ public class SparkNotifyPostBuilder extends Recorder {
 		}
 	}
 
-	private Credentials getCredentials(final String credentialsId) {
-		return firstOrNull(
-				lookupCredentials(
-						Credentials.class,
-						Jenkins.getInstance(),
-						ACL.SYSTEM,
-						Collections.<DomainRequirement> emptyList()),
-				withId(credentialsId));
+	private Credentials getCredentials(final String credentialsId, Run<?,?> build) {
+		 return CredentialsProvider.findCredentialById(credentialsId, StringCredentials.class, build);
 	}
 }
