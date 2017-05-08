@@ -7,6 +7,8 @@ import java.util.List;
 
 import javax.ws.rs.core.Response.Status;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -44,11 +46,14 @@ public class SparkNotifyBuilder extends Builder {
 
 	private List<SparkRoom> roomList;
 	private final boolean disable;
-	private String message;
 	private String messageType;
 	private String messageContent;
 	private String credentialsId;
 
+	/**
+	 * @deprecated Backwards compatibility; please use SparkSpace
+	 */
+	@Deprecated
 	public static final class SparkRoom extends AbstractDescribableImpl<SparkRoom> {
 		private final String rName;
 		private final String rId;
@@ -77,7 +82,8 @@ public class SparkNotifyBuilder extends Builder {
 	}
 
 	@DataBoundConstructor
-	public SparkNotifyBuilder(final boolean disable, final String messageContent, final String messageType, final List<SparkRoom> roomList, final String credentialsId) {
+	public SparkNotifyBuilder(final boolean disable, final String messageContent, final String messageType,
+			final List<SparkRoom> roomList, final String credentialsId) {
 		this.disable = disable;
 		this.messageContent = messageContent;
 		this.messageType = messageType;
@@ -104,7 +110,7 @@ public class SparkNotifyBuilder extends Builder {
 
 	public List<SparkRoom> getRoomList() {
 		if (roomList == null) {
-			roomList = new ArrayList<SparkRoom>();
+			roomList = new ArrayList<>();
 		}
 		return roomList;
 	}
@@ -127,46 +133,48 @@ public class SparkNotifyBuilder extends Builder {
 	public boolean perform(final AbstractBuild<?, ?> build, final Launcher launcher, final BuildListener listener)
 			throws InterruptedException, IOException {
 		if (disable) {
-			listener.getLogger().println("Spark Notify Plugin Disabled!");
+			listener.getLogger().println("Spark Notifier Plugin Disabled!");
 			return true;
 		}
 
 		EnvVars envVars = build.getEnvironment(listener);
 
-		message = getMessageContent();
+		String message = getMessageContent();
 		if (!SparkMessage.isMessageValid(message)) {
-			listener.getLogger().println("Skipping Spark notifications because no message was defined");
+			listener.getLogger().println("Skipping spark notifications because no message was defined");
 			return true;
 		}
 
-		if (messageType == null || messageType.isEmpty()) {
+		if (StringUtils.isEmpty(messageType)) {
 			messageType = "text";
 		}
 
-		if (roomList == null || roomList.isEmpty()) {
-			listener.getLogger().println("Skipping Spark notifications because no rooms were defined");
+		if (CollectionUtils.isEmpty(roomList)) {
+			listener.getLogger().println("Skipping spark notifications because no spaces were defined");
 			return true;
 		}
 
 		SparkMessageType sparkMessageType = SparkMessageType.valueOf(messageType.toUpperCase());
-		
+
 		SparkNotifier notifier = new SparkNotifier(getCredentials(credentialsId, build), envVars);
 
 		for (int k = 0; k < roomList.size(); k++) {
-			listener.getLogger().println("Sending message to Spark Room: " + roomList.get(k).getRId());
+			listener.getLogger().println("Sending message to spark space: " + roomList.get(k).getRId());
 			try {
 				int responseCode = notifier.sendMessage(roomList.get(k).getRId(), message, sparkMessageType);
 				if (responseCode != Status.OK.getStatusCode()) {
-					listener.getLogger().println("Could not send message, response code: " + responseCode);
+					listener.getLogger().println("Could not send message; response code: " + responseCode);
 				} else {
 					listener.getLogger().println("Message sent");
 				}
 			} catch (SocketException e) {
-				listener.getLogger().println("Could not send message because Spark API server did not provide a response; This is likely intermittent");
+				listener.getLogger().println(
+						"Could not send message because spark server did not provide a response; this is likely intermittent");
 			} catch (SparkNotifyException e) {
-				listener.getLogger().println("Could not send message because token could not be found.");
+				listener.getLogger().println(e.getMessage());
 			} catch (RuntimeException e) {
-				listener.getLogger().println("Could not send message because of an unknown issue. Please contact the Administrators");
+				listener.getLogger().println(
+						"Could not send message because of an unknown issue; please file an issue");
 			}
 		}
 
@@ -175,7 +183,7 @@ public class SparkNotifyBuilder extends Builder {
 
 	@Override
 	public BuildStepMonitor getRequiredMonitorService() {
-		return BuildStepMonitor.BUILD;
+		return BuildStepMonitor.NONE;
 	}
 
 	@Override
@@ -212,7 +220,7 @@ public class SparkNotifyBuilder extends Builder {
 			if (SparkMessage.isRoomIdValid(roomId)) {
 				return FormValidation.ok();
 			} else {
-				return FormValidation.error("Invalid Room Id; See help message");
+				return FormValidation.error("Invalid spaceId; see help message");
 			}
 		}
 
@@ -225,11 +233,12 @@ public class SparkNotifyBuilder extends Builder {
 			return true;
 		}
 
-		public ListBoxModel doFillCredentialsIdItems(@AncestorInPath final Job<?, ?> project, @QueryParameter final String serverURI) {
-			return new StandardListBoxModel()
-					.withEmptySelection()
-					.withMatching(CredentialsMatchers.instanceOf(StringCredentials.class),
-							CredentialsProvider.lookupCredentials(StringCredentials.class, project, ACL.SYSTEM, URIRequirementBuilder.fromUri(serverURI).build()));
+		public ListBoxModel doFillCredentialsIdItems(@AncestorInPath final Job<?, ?> project,
+				@QueryParameter final String serverURI) {
+			return new StandardListBoxModel().withEmptySelection().withMatching(
+					CredentialsMatchers.instanceOf(StringCredentials.class),
+					CredentialsProvider.lookupCredentials(StringCredentials.class, project, ACL.SYSTEM,
+							URIRequirementBuilder.fromUri(serverURI).build()));
 		}
 
 		public ListBoxModel doFillMessageTypeItems(@QueryParameter final String messageType) {
@@ -247,7 +256,7 @@ public class SparkNotifyBuilder extends Builder {
 		}
 	}
 
-	private Credentials getCredentials(final String credentialsId, Run<?,?> build) {
-		 return CredentialsProvider.findCredentialById(credentialsId, StringCredentials.class, build);
+	private Credentials getCredentials(final String credentialsId, final Run<?, ?> build) {
+		return CredentialsProvider.findCredentialById(credentialsId, StringCredentials.class, build);
 	}
 }

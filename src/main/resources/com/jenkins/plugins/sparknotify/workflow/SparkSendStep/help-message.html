@@ -2,10 +2,6 @@
 	Define the message to send to spark space
 	<br>
 	<br>
-	To display the build result:
-	<ul>
-	<li>${BUILD_RESULT}</li>
-	</ul>
 	Environment variable examples:
 	<ul>
 	<li>$BUILD_URL</li>
@@ -17,7 +13,6 @@
 	<li>${JOB_NAME}</li>
 	<li>${JOB_URL}</li>
 	<li>${BUILD_NUMBER}</li>
-	<li>${BUILD_RESULT}</li>
 	<li>${BUILD_URL}</li>
 	<li>${BUILD_DISPLAY_NAME}</li>
 	<li>${BUILD_ID}</li>
@@ -43,13 +38,5 @@
 	<li>${CHANGE_AUTHOR_EMAIL}</li>
 	<li>${CHANGE_TARGET}</li>
 	</ul>
-	if using the Environment Injector Plugin:
-	<ul>
-	<li>${BUILD_CAUSE}</li>
-	<li>${BUILD_CAUSE_MANUALTRIGGER}</li>
-	<li>${BUILD_CAUSE_SCMTRIGGER}</li>
-	<li>${BUILD_CAUSE_UPSTREAMTRIGGER}</li>
-	<li>${ROOT_BUILD_CAUSE}</li>
-	</ul>
-	All environment variables injected into the build can also be used
+	Environment variables injected into the step from withEnv and withCredentials can also be used
 </div>

@@ -7,6 +7,8 @@ import java.util.List;
 
 import javax.ws.rs.core.Response.Status;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -58,6 +60,10 @@ public class SparkNotifyPostBuilder extends Recorder {
 	private String messageContent;
 	private String credentialsId;
 
+	/**
+	 * @deprecated Backwards compatibility; please use SparkSpace
+	 */
+	@Deprecated
 	public static final class SparkRoom extends AbstractDescribableImpl<SparkRoom> {
 		private final String rName;
 		private final String rId;
@@ -86,8 +92,9 @@ public class SparkNotifyPostBuilder extends Recorder {
 	}
 
 	@DataBoundConstructor
-	public SparkNotifyPostBuilder(final boolean disable, final boolean skipOnFailure, final boolean skipOnSuccess, final boolean skipOnAborted, final boolean skipOnUnstable,
-			final String messageContent, final String messageType, final List<SparkRoom> roomList, final String credentialsId) {
+	public SparkNotifyPostBuilder(final boolean disable, final boolean skipOnFailure, final boolean skipOnSuccess,
+			final boolean skipOnAborted, final boolean skipOnUnstable, final String messageContent,
+			final String messageType, final List<SparkRoom> roomList, final String credentialsId) {
 		this.disable = disable;
 		this.skipOnFailure = skipOnFailure;
 		this.skipOnSuccess = skipOnSuccess;
@@ -134,7 +141,7 @@ public class SparkNotifyPostBuilder extends Recorder {
 
 	public List<SparkRoom> getRoomList() {
 		if (roomList == null) {
-			roomList = new ArrayList<SparkRoom>();
+			roomList = new ArrayList<>();
 		}
 		return roomList;
 	}
@@ -165,7 +172,7 @@ public class SparkNotifyPostBuilder extends Recorder {
 
 		message = getMessageContent();
 		if (!SparkMessage.isMessageValid(message)) {
-			listener.getLogger().println("Skipping Spark notifications because no message was defined");
+			listener.getLogger().println("Skipping spark notifications because no message was defined");
 			return true;
 		}
 
@@ -178,28 +185,28 @@ public class SparkNotifyPostBuilder extends Recorder {
 		}
 
 		if (skipOnSuccess && result.equals(JOB_SUCCESS)) {
-			listener.getLogger().println("Skipping Spark notifications because job was successful");
+			listener.getLogger().println("Skipping spark notifications because job was successful");
 			return true;
 		}
 		if (skipOnFailure && result.equals(JOB_FAILURE)) {
-			listener.getLogger().println("Skipping Spark notifications because job failed");
+			listener.getLogger().println("Skipping spark notifications because job failed");
 			return true;
 		}
 		if (skipOnAborted && result.equals(JOB_ABORTED)) {
-			listener.getLogger().println("Skipping Spark notifications because job was aborted");
+			listener.getLogger().println("Skipping spark notifications because job was aborted");
 			return true;
 		}
 		if (skipOnUnstable && result.equals(JOB_UNSTABLE)) {
-			listener.getLogger().println("Skipping Spark notifications because job is unstable");
+			listener.getLogger().println("Skipping spark notifications because job is unstable");
 			return true;
 		}
 
-		if (messageType == null || messageType.isEmpty()) {
+		if (StringUtils.isEmpty(messageType)) {
 			messageType = "text";
 		}
 
-		if (roomList == null || roomList.isEmpty()) {
-			listener.getLogger().println("Skipping Spark notifications because no rooms were defined");
+		if (CollectionUtils.isEmpty(roomList)) {
+			listener.getLogger().println("Skipping spark notifications because no rooms were defined");
 			return true;
 		}
 
@@ -212,16 +219,18 @@ public class SparkNotifyPostBuilder extends Recorder {
 			try {
 				int responseCode = notifier.sendMessage(roomList.get(k).getRId(), message, sparkMessageType);
 				if (responseCode != Status.OK.getStatusCode()) {
-					listener.getLogger().println("Could not send message, response code: " + responseCode);
+					listener.getLogger().println("Could not send message; response code: " + responseCode);
 				} else {
 					listener.getLogger().println("Message sent");
 				}
 			} catch (SocketException e) {
-				listener.getLogger().println("Could not send message because Spark API server did not provide a response; This is likely intermittent");
+				listener.getLogger().println(
+						"Could not send message because ppark server did not provide a response; this is likely intermittent");
 			} catch (SparkNotifyException e) {
-				listener.getLogger().println("Could not send message because token could not be found.");
+				listener.getLogger().println(e.getMessage());
 			} catch (RuntimeException e) {
-				listener.getLogger().println("Could not send message because of an unknown issue. Please contact the Administrators");
+				listener.getLogger().println(
+						"Could not send message because of an unknown issue; please an issue");
 			}
 		}
 
@@ -272,7 +281,7 @@ public class SparkNotifyPostBuilder extends Recorder {
 			if (SparkMessage.isRoomIdValid(roomId)) {
 				return FormValidation.ok();
 			} else {
-				return FormValidation.error("Invalid Room Id; See help message");
+				return FormValidation.error("Invalid spaceId; see help message");
 			}
 		}
 
@@ -285,11 +294,12 @@ public class SparkNotifyPostBuilder extends Recorder {
 			return true;
 		}
 
-		public ListBoxModel doFillCredentialsIdItems(@AncestorInPath final Job<?, ?> project, @QueryParameter final String serverURI) {
-			return new StandardListBoxModel()
-					.withEmptySelection()
-					.withMatching(CredentialsMatchers.instanceOf(StringCredentials.class),
-							CredentialsProvider.lookupCredentials(StringCredentials.class, project, ACL.SYSTEM, URIRequirementBuilder.fromUri(serverURI).build()));
+		public ListBoxModel doFillCredentialsIdItems(@AncestorInPath final Job<?, ?> project,
+				@QueryParameter final String serverURI) {
+			return new StandardListBoxModel().withEmptySelection().withMatching(
+					CredentialsMatchers.instanceOf(StringCredentials.class),
+					CredentialsProvider.lookupCredentials(StringCredentials.class, project, ACL.SYSTEM,
+							URIRequirementBuilder.fromUri(serverURI).build()));
 		}
 
 		public ListBoxModel doFillMessageTypeItems(@QueryParameter final String messageType) {
@@ -307,7 +317,7 @@ public class SparkNotifyPostBuilder extends Recorder {
 		}
 	}
 
-	private Credentials getCredentials(final String credentialsId, Run<?,?> build) {
-		 return CredentialsProvider.findCredentialById(credentialsId, StringCredentials.class, build);
+	private Credentials getCredentials(final String credentialsId, final Run<?, ?> build) {
+		return CredentialsProvider.findCredentialById(credentialsId, StringCredentials.class, build);
 	}
 }

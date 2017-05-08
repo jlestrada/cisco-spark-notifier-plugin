@@ -2,5 +2,5 @@
   This view is used to render the installed plugins page.
 -->
 <div>
-  Notify Cisco Spark Rooms from Jenkins Build Steps or Post Build Step using 'Secret text' Credential containing Bot or User Token
+  Notify Cisco Spark spaces from build, post-build and pipeline steps using 'Secret text' credential containing bot or user token
 </div>

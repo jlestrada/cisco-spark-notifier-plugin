@@ -1,18 +1,22 @@
 <div>
-	Define the message to send to spark room
+	Define the message to send to spark space
 	<br>
 	<br>
 	Environment variable examples:
 	<ul>
+	<li>$BUILD_URL</li>
 	<li>${BUILD_URL}</li>
-	<li>${BUILD_NUMBER}</li>
-	<li>${BUILD_ID}</li>
-	<li>${BUILD_DISPLAY_NAME}</li>
-	<li>${BUILD_TAG}</li>
+	<li>${env.BUILD_URL}</li>
+	</ul>
+	Commonly used variables:
+	<ul>
 	<li>${JOB_NAME}</li>
 	<li>${JOB_URL}</li>
-	<li>${EXECUTOR_NUMBER}</li>
-	<li>${HUDSON_URL}</li>
+	<li>${BUILD_NUMBER}</li>
+	<li>${BUILD_URL}</li>
+	<li>${BUILD_DISPLAY_NAME}</li>
+	<li>${BUILD_ID}</li>
+	<li>${BUILD_TAG}</li>
 	<li>${JAVA_HOME}</li>
 	<li>${JAVA_VERSION}</li>
 	<li>${JENKINS_URL}</li>
@@ -21,6 +25,7 @@
 	<li>${NODE_NAME}</li>
 	<li>${PATH}</li>
 	<li>${PWD}</li>
+	<li>${EXECUTOR_NUMBER}</li>
 	</ul>
 	if using SCM or SCM trigger (see the corresponding plugin wiki for additional environment variables):
 	<ul>
