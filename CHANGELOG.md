@@ -3,6 +3,7 @@
 ## 1.1.0
 - Add pipeline support
 - Fix Build Step blocking concurrent jobs
+- Move optional fields into advanced section
 - Minor text updates
 
 ## 1.0.1
